@@ -1,0 +1,5 @@
+# Extra dependencies for Rhythm Royale.
+# sounddevice: live audio capture at runtime (needs PortAudio: apt install portaudio19-dev).
+# soundfile:   reading/writing WAV fixtures (used by the app and its tests).
+sounddevice==0.5.1
+soundfile

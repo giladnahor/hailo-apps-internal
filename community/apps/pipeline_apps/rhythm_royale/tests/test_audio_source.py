@@ -2,7 +2,9 @@ import time
 from pathlib import Path
 
 import numpy as np
-import soundfile as sf
+import pytest
+
+sf = pytest.importorskip("soundfile", reason="soundfile not installed (see rhythm_royale/requirements.txt)")
 
 from community.apps.pipeline_apps.rhythm_royale.audio_source import AudioSource
 

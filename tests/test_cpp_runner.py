@@ -18,6 +18,7 @@ Special handling:
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import subprocess
 import sys
@@ -296,6 +297,22 @@ class _Result:
         self.early_exit = early_exit
 
 
+def _child_env() -> Dict[str, str]:
+    """Environment for the C++ subprocess, scrubbed of opencv-python's Qt vars.
+
+    Importing cv2 (pulled in transitively via conftest) exports
+    QT_QPA_PLATFORM_PLUGIN_PATH / QT_QPA_FONTDIR pointing at the opencv-python
+    wheel's bundled Qt plugins. The native C++ apps link their own system Qt and
+    abort ("Could not load the Qt platform plugin xcb") if they inherit those —
+    so the GUI (video/camera) runs crash on startup. Strip them so the child
+    resolves Qt against the system install, as it would outside pytest.
+    """
+    env = dict(os.environ)
+    for k in ("QT_QPA_PLATFORM_PLUGIN_PATH", "QT_QPA_FONTDIR", "QT_PLUGIN_PATH"):
+        env.pop(k, None)
+    return env
+
+
 def _run_timed(cmd: List[str], cwd: Path, run_time: int) -> _Result:
     """Run cmd for up to run_time seconds, then send SIGTERM."""
     proc = subprocess.Popen(
@@ -303,6 +320,7 @@ def _run_timed(cmd: List[str], cwd: Path, run_time: int) -> _Result:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=str(cwd),
+        env=_child_env(),
     )
 
     start      = time.monotonic()
@@ -489,11 +507,14 @@ def test_cpp_image(app_name, _resources, _arch, tmp_path):
             capture_output=True,
             cwd=str(_run_cwd(cfg)),
             timeout=IMAGE_TIMEOUT,
+            env=_child_env(),
         )
     except subprocess.TimeoutExpired:
         pytest.fail(f"[{app_name}] image test timed out after {IMAGE_TIMEOUT}s")
 
-    result = _Result(proc.returncode, proc.stdout, proc.stderr)
+    # image apps run to completion on their own, so a non-zero exit is a real
+    # failure — mark early_exit=True so _assert_clean enforces rc == 0.
+    result = _Result(proc.returncode, proc.stdout, proc.stderr, early_exit=True)
     _write_log(log, cmd, result)
     _assert_clean(result, app_name, f"image[{_arch}]", log)
 

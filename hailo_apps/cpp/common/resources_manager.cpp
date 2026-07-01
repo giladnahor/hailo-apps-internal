@@ -373,12 +373,17 @@ static std::string run_cmd_capture(const std::string &cmd)
     return out;
 }
 
+// Platform-appropriate stderr sink. Using "2>nul" on Linux silently creates a
+// junk file named "nul" in the CWD, so pick the POSIX path off Windows.
+#ifdef _WIN32
+static constexpr const char *NULL_REDIRECT = "2>nul";
+#else
+static constexpr const char *NULL_REDIRECT = "2>/dev/null";
+#endif
+
 static std::string detect_device_arch()
 {
-    // Same behavior as your original code:
-    // try windows redirect first, then posix redirect
-    std::string out = run_cmd_capture("hailortcli fw-control identify 2>nul");
-    if (out.empty()) out = run_cmd_capture("hailortcli fw-control identify 2>/dev/null");
+    std::string out = run_cmd_capture(std::string("hailortcli fw-control identify ") + NULL_REDIRECT);
 
     std::regex re(R"(Device Architecture\s*:\s*([A-Za-z0-9]+))");
     std::smatch m;
@@ -393,8 +398,7 @@ static std::string detect_device_arch()
 
 static std::string hailort_version()
 {
-    std::string out = run_cmd_capture("hailortcli -v 2>nul");
-    if (out.empty()) out = run_cmd_capture("hailortcli -v 2>/dev/null");
+    std::string out = run_cmd_capture(std::string("hailortcli -v ") + NULL_REDIRECT);
 
     // best-effort: first X.Y or X.Y.Z
     std::regex re(R"(([0-9]+(\.[0-9]+){1,2}))");
@@ -413,11 +417,7 @@ static std::string validate_arch(const std::string &a)
 static std::string detect_hef_arch(const std::filesystem::path &hef_path)
 {
     auto run = [&](const std::string &cmd) {
-#ifdef _WIN32
-        return run_cmd_capture(cmd + " 2>nul");
-#else
-        return run_cmd_capture(cmd + " 2>/dev/null");
-#endif
+        return run_cmd_capture(cmd + " " + NULL_REDIRECT);
     };
 
     const std::string p = hef_path.string();
@@ -492,10 +492,13 @@ static std::string modelzoo_version_for(const std::string &hw_arch, const std::s
         {"5.1.1","v5.1.0"},
         {"5.1.2","v5.1.0"},
         {"5.2.0","v5.2.0"},
+        {"5.3.0","v5.3.0"},
+        {"5.4.0","v5.4.0"},
     };
 
     // hailo8/8l: 4.x -> v2.xx
     static const std::unordered_map<std::string,std::string> compat_8 = {
+        {"4.24.0","v2.19.0"},
         {"4.23.0","v2.18.0"},
         {"4.22.0","v2.16.0"},
         {"4.21.0","v2.15.0"},
@@ -967,7 +970,7 @@ void ResourcesManager::print_models(const std::string &app, std::ostream &os) co
 
     os << "\n============================================================\n";
     os << "Total: " << defaults.size() << " default, " << extras.size() << " extra\n\n";
-    os << "Usage: --hef-path <model_name>\n";
+    os << "Usage: --net <model_name>  (alias: -n)\n";
     os << "       Model will be auto-downloaded if not found locally.\n";
 }
 

@@ -10,7 +10,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import soundfile as sf
+
+sf = pytest.importorskip("soundfile", reason="soundfile not installed (see rhythm_royale/requirements.txt)")
 
 from community.apps.pipeline_apps.rhythm_royale.beat_extractor import (
     compute_beat_state,
