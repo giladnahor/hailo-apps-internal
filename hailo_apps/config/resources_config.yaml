@@ -763,13 +763,16 @@ instance_segmentation: &instance_segmentation_app
           app_type: [standalone]
     hailo10h:
       default:
-        - name: yolov5m_seg
-          source: mz
-          app_type: [pipeline, standalone]
-      extra:
+        # Standalone decoder handles NMS (1 output) or YOLOv8-seg (10), not raw
+        # yolov5m_seg (4 outputs) — so standalone defaults to the NMS variant.
+        # C++ takes the first default entry; Python filters defaults by app_type.
         - name: yolov5m_seg_with_nms
           source: s3
           app_type: [standalone]
+        - name: yolov5m_seg
+          source: mz
+          app_type: [pipeline]
+      extra:
         - name: yolov5n_seg_with_nms
           source: s3
           app_type: [standalone]

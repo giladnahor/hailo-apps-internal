@@ -1,29 +1,49 @@
 # Release Validation Findings
 
-**Environment:** x86_64 Ubuntu 24.04, kernel 6.17.0-35, Python 3.12, Hailo-8
-**Stack:** HailoRT 4.24.0 + TAPPAS Core 5.3.1 (Model Zoo v2.19.0)
-**Date:** 2026-06-30
+**Validated on two devices:**
+- **Hailo-8** — HailoRT 4.24.0 + TAPPAS 5.3.1 (Model Zoo v2.19.0)
+- **Hailo-10H** — HailoRT 5.3.0 + TAPPAS 5.3.0 (Model Zoo v5.3.0), + gen-ai extras & HEFs
+- x86_64 Ubuntu 24.04, kernel 6.17.0-35, Python 3.12
+**Date:** 2026-07-01
 
 ## Fix status (branch `fix/release-validation-findings`)
 
 | # | Issue | Status |
 |---|---|---|
-| 1 | C++ compat map missing 4.24.0 (auto-download broken) | ✅ fixed + validated on hailo8 (auto-downloaded `yolov5m_seg_with_nms`) |
-| 2 | instance_seg default model incompatible | ✅ fixed (config-only) + validated on hailo8; **h8l/h10 NOT changed — see note** |
+| 1 | C++ compat map missing 4.24.0 (auto-download broken) | ✅ fixed + validated on H8 (added 5.3.0/5.4.0 for H10 too) |
+| 2 | instance_seg default model incompatible | ✅ fixed for hailo8 **and hailo10h**, both validated on-device; **hailo8l NOT changed — no device to test** |
 | 3 | `--list-models` wrong usage text | ✅ fixed + validated |
-| 4 | rhythm_royale undeclared `soundfile` | ✅ fixed (requirements.txt + importorskip) + validated (37/37) |
+| 4 | rhythm_royale undeclared `soundfile` | ✅ fixed (requirements.txt + importorskip) + validated (37/37, both devices) |
 | 5 | C++ test harness leaked OpenCV Qt env | ✅ fixed + validated (14→0 fails) |
-| 6 | C++ image test never flagged nonzero exit | ✅ fixed |
+| 6 | C++ image test never flagged nonzero exit | ✅ fixed + validated (now correctly catches the instance_seg error) |
 | 7 | `2>nul` created junk files on Linux | ✅ fixed + validated (no `nul` file) |
+| 8 | C++ s3 URL used `h10h` instead of `h10` (403 on H10 s3 models) | ✅ fixed + validated on H10 (auto-download now 200) |
 
-Full C++ suite now: **35 passed, 3 skipped, 0 failed** (skips = stereo video/camera, zero_shot build-only).
+> **#2 remaining work for hailo8l only (no H8L device available):** default `yolov5n_seg`
+> (4 outputs) is unsupported by the standalone decoder. Apply the same config pattern: a
+> standalone-compatible model FIRST tagged `app_type: [standalone]`, yolov5 raw model retagged
+> `[pipeline]`. h8l has no `_with_nms` variant in config — use a YOLOv8-seg model (10 outputs,
+> e.g. `yolov8s_seg`). Validate on an H8L device.
 
-> **#2 remaining work for h8l / h10 (not validatable on this box):** the same incompatible-default
-> problem exists for `hailo8l` (default `yolov5n_seg`, 4 outputs) and `hailo10h` (default `yolov5m_seg`,
-> 4 outputs). Apply the same config pattern there: put a standalone-compatible model FIRST tagged
-> `app_type: [standalone]` and retag the yolov5 raw model `[pipeline]`. h8l has no `_with_nms` variant
-> in config — use a YOLOv8-seg model (10 outputs, e.g. `yolov8s_seg`) for standalone. Validate on the
-> respective device.
+> **Platform note (HailoRT, not this repo):** the HailoRT **5.3.0** PCIe driver fails to build on
+> kernel **6.17** — `vdma/monitor.c` calls `del_timer_sync()`, removed in Linux 6.16. A local
+> version-guarded compat shim (`del_timer_sync`→`timer_delete_sync`) in `/usr/src/...` was applied
+> to proceed. (The H8 4.24.0 driver built fine on 6.17.) Report upstream to the HailoRT team.
+
+## H10 test results (HailoRT 5.3.0)
+
+| Suite | Result |
+|---|---|
+| Sanity | 39/39 pass |
+| Installation | 31/31 pass |
+| Pipeline (hailo10h, on-device) | 74/74 pass |
+| Standalone (on-device) | 21/21 pass |
+| GenAI (LLM/VLM/Whisper/voice/agent) | 16/16 pass + 1 intentional skip |
+| Community | 33/33 app suites pass |
+| C++ | 35 pass / 3 skip / 0 fail (after #2-h10 + #8 fixes) |
+
+> GenAI note: the agent example needs the `agent` group model (`Qwen2.5-Coder-1.5B`) pre-downloaded;
+> otherwise its 120s test timeout fires mid-download (not a code failure).
 
 ## Test results summary
 
