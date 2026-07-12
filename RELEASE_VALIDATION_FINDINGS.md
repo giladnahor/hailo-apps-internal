@@ -11,7 +11,7 @@
 | # | Issue | Status |
 |---|---|---|
 | 1 | C++ compat map missing 4.24.0 (auto-download broken) | ✅ fixed + validated on H8 (added 5.3.0/5.4.0 for H10 too) |
-| 2 | instance_seg default model incompatible | ✅ fixed for hailo8 **and hailo10h**, both validated on-device; **hailo8l NOT changed — no device to test** |
+| 2 | instance_seg default model incompatible | ✅ fixed for hailo8, hailo8l, hailo10h. h8/h10 validated on-device; **h8l applied but UNVALIDATED (no H8L device)** |
 | 3 | `--list-models` wrong usage text | ✅ fixed + validated |
 | 4 | rhythm_royale undeclared `soundfile` | ✅ fixed (requirements.txt + importorskip) + validated (37/37, both devices) |
 | 5 | C++ test harness leaked OpenCV Qt env | ✅ fixed + validated (14→0 fails) |
@@ -19,11 +19,9 @@
 | 7 | `2>nul` created junk files on Linux | ✅ fixed + validated (no `nul` file) |
 | 8 | C++ s3 URL used `h10h` instead of `h10` (403 on H10 s3 models) | ✅ fixed + validated on H10 (auto-download now 200) |
 
-> **#2 remaining work for hailo8l only (no H8L device available):** default `yolov5n_seg`
-> (4 outputs) is unsupported by the standalone decoder. Apply the same config pattern: a
-> standalone-compatible model FIRST tagged `app_type: [standalone]`, yolov5 raw model retagged
-> `[pipeline]`. h8l has no `_with_nms` variant in config — use a YOLOv8-seg model (10 outputs,
-> e.g. `yolov8s_seg`). Validate on an H8L device.
+> **#2 hailo8l — applied but UNVALIDATED:** standalone default set to `yolov8n_seg` (10 outputs,
+> nano tier), pipeline default kept as `yolov5n_seg`. No Hailo-8L device was available during
+> validation — confirm on an H8L before relying on it.
 
 > **Platform note (HailoRT, not this repo):** the HailoRT **5.3.0** PCIe driver fails to build on
 > kernel **6.17** — `vdma/monitor.c` calls `del_timer_sync()`, removed in Linux 6.16. A local

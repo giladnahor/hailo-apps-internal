@@ -739,9 +739,16 @@ instance_segmentation: &instance_segmentation_app
           app_type: [standalone]
     hailo8l:
       default:
+        # Standalone decoder needs NMS (1 output) or YOLOv8-seg (10); h8l has no
+        # _with_nms variant, so standalone uses yolov8n_seg (10 outputs, nano tier
+        # to match h8l's low-power default). Pipeline keeps yolov5n_seg.
+        # NOTE: unvalidated on-device — no Hailo-8L available during validation.
+        - name: yolov8n_seg
+          source: mz
+          app_type: [standalone]
         - name: yolov5n_seg
           source: mz
-          app_type: [pipeline, standalone]
+          app_type: [pipeline]
       extra:
         - name: yolov5l_seg
           source: mz
@@ -753,9 +760,6 @@ instance_segmentation: &instance_segmentation_app
           source: mz
           app_type: [standalone]
         - name: yolov8m_seg
-          source: mz
-          app_type: [standalone]
-        - name: yolov8n_seg
           source: mz
           app_type: [standalone]
         - name: yolov8s_seg
