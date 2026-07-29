@@ -85,8 +85,20 @@ access_log.csv
 **/gesture_detection/models/
 **/gesture_detection/*.log
 
-# YOLO World cached text embeddings (regenerated on demand)
+# Cached text embeddings (regenerated on demand)
 **/yolo_world/embeddings.json
+**/clip/embeddings.json
+
+# C++ third-party dependencies (fetched by the build, never committed)
+hailo_apps/cpp/deps/
+
+# C++ app model artifacts downloaded/generated at setup time
+**/onnxrt_hailo_pipeline/*.onnx
+**/zero_shot_classification/*.bin
+
+# Runtime output directories (app logs, recordings, saved frames)
+logs/
+output/
 
 # Local-only LPR regression workspace (lives outside the app repo)
 tests/lpr_regression/
